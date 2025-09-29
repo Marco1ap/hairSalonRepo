@@ -24,7 +24,7 @@ const ServicesScreen = ({ navigation }) => {
         .order('name', { ascending: true });
 
       if (error) {
-        console.log('Erro ao buscar serviços:', error);
+        console.log('Erro ao buscar sserviços:', error);
       } else {
         setServices(data || []);
       }

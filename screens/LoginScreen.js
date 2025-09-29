@@ -33,7 +33,6 @@ const LoginScreen = ({ navigation }) => {
       if (error) {
         Alert.alert('Erro de Login', error.message);
       } else {
-        // Login bem-sucedido, navegar para a tela Home
         navigation.replace('Home');
       }
     } catch (error) {
@@ -74,9 +73,8 @@ const LoginScreen = ({ navigation }) => {
           />
 
           <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={() => navigation.replace('Home')} // apenas para o desenvolvimento
-            //onPress={handleLogin}
+            style={[styles.button, loading && styles.buttonDisabled]} 
+            onPress={handleLogin}
             disabled={loading}
           >
             <Text style={styles.buttonText}>
