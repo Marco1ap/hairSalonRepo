@@ -15,7 +15,7 @@ const { width: screenWidth } = Dimensions.get('window');
 
 const AnalyticsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState('month'); // week, month, year
+  const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [analytics, setAnalytics] = useState({
     totalAppointments: 0,
     totalRevenue: 0,
@@ -244,7 +244,7 @@ const AnalyticsScreen = ({ navigation }) => {
           date,
           ...data,
         }))
-        .slice(-7); // Últimos 7 dias
+        .slice(-7);
 
       setAnalytics(prev => ({ ...prev, appointmentsByDay }));
     }
@@ -292,7 +292,6 @@ const AnalyticsScreen = ({ navigation }) => {
     }).format(value);
   };
 
-  // Componente de gráfico de barras simples
   const SimpleBarChart = ({ data, maxValue, height = 150 }) => {
     if (!data || data.length === 0) return null;
 
@@ -422,7 +421,7 @@ const AnalyticsScreen = ({ navigation }) => {
           {analytics.totalAppointments > 0 ? (
             <PieChart
               data={pieChartData}
-              width={screenWidth - 40} // from react-native-responsive-fontsize
+              width={screenWidth - 40}
               height={220}
               chartConfig={{
                 backgroundColor: '#ffffff',
@@ -715,7 +714,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   rankingScroll: {
-    maxHeight: 200, // Altura máxima para o scroll
+    maxHeight: 200,
   },
   rankingItem: {
     flexDirection: 'row',

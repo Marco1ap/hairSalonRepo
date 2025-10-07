@@ -108,7 +108,6 @@ const HomeScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* 1º Lugar: Receita Hoje */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Receita Hoje</Text>
         <View style={styles.metricCard}>
@@ -117,7 +116,6 @@ const HomeScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* 2º Lugar: Ações Rápidas */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Ações Rápidas</Text>
         
@@ -150,7 +148,6 @@ const HomeScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* 3º Lugar: Agendamentos Hoje */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Agendamentos de Hoje</Text>
         {loading ? (

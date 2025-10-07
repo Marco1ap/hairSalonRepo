@@ -23,15 +23,17 @@ const AppointmentsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState(null);
-  const [activeTab, setActiveTab] = useState('future'); // 'past', 'today', 'future'
+  const [activeTab, setActiveTab] = useState('future'); 
 
-  // Estados para o formulário de agendamento
   const [formData, setFormData] = useState({
     client_id: '',
     service_id: '',
     appointment_time: new Date(),
     status: 'scheduled',
     notes: '',
+    payment_method: 'pix',
+    payment_value: '',
+    legacy_id: 0,
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -107,7 +109,6 @@ const AppointmentsScreen = ({ navigation }) => {
     }
   };
 
-  // Função para categorizar agendamentos por tempo
   const categorizeAppointments = () => {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -132,7 +133,6 @@ const AppointmentsScreen = ({ navigation }) => {
     return { past, today, future };
   };
 
-  // Função para organizar agendamentos em seções
   const organizeAppointmentsByDate = (appointmentsList) => {
     const sections = {};
     
@@ -152,7 +152,6 @@ const AppointmentsScreen = ({ navigation }) => {
       sections[monthYear][dayWeek].push(appointment);
     });
 
-    // Converter para formato de SectionList
     const sectionData = [];
     Object.keys(sections).forEach(monthYear => {
       Object.keys(sections[monthYear]).forEach(dayWeek => {
@@ -200,15 +199,20 @@ const AppointmentsScreen = ({ navigation }) => {
         appointment_time: new Date(appointment.appointment_time),
         status: appointment.status,
         notes: appointment.notes || '',
+        payment_method: appointment.payment_method || 'pix',
+        payment_value: appointment.payment_value ? String(appointment.payment_value) : '',
       });
     } else {
       setEditingAppointment(null);
+      const selectedService = services.length > 0 ? services[0] : null;
       setFormData({
         client_id: clients.length > 0 ? clients[0].id : '',
-        service_id: services.length > 0 ? services[0].id : '',
+        service_id: selectedService?.id || '',
         appointment_time: new Date(),
         status: 'scheduled',
         notes: '',
+        payment_method: 'pix',
+        payment_value: selectedService ? String(selectedService.price) : '',
       });
     }
     setModalVisible(true);
@@ -223,6 +227,8 @@ const AppointmentsScreen = ({ navigation }) => {
       appointment_time: new Date(),
       status: 'scheduled',
       notes: '',
+      payment_method: 'pix',
+      payment_value: '',
     });
     setShowDatePicker(false);
     setShowTimePicker(false);
@@ -234,6 +240,11 @@ const AppointmentsScreen = ({ navigation }) => {
       return;
     }
 
+    if (!formData.payment_method) {
+      Alert.alert('Erro', 'Método de pagamento é obrigatório');
+      return;
+    }
+
     try {
       const appointmentData = {
         client_id: formData.client_id,
@@ -241,6 +252,8 @@ const AppointmentsScreen = ({ navigation }) => {
         appointment_time: formData.appointment_time.toISOString(),
         status: formData.status,
         notes: formData.notes.trim(),
+        payment_method: formData.payment_method,
+        payment_value: formData.payment_value ? parseFloat(formData.payment_value) : null,
       };
 
       if (editingAppointment) {
@@ -319,6 +332,15 @@ const AppointmentsScreen = ({ navigation }) => {
     setFormData({ ...formData, appointment_time: currentTime });
   };
 
+  const handleServiceChange = (serviceId) => {
+    const selectedService = services.find(s => s.id === serviceId);
+    setFormData({ 
+      ...formData, 
+      service_id: serviceId,
+      payment_value: selectedService ? String(selectedService.price) : ''
+    });
+  };
+
   const formatDateTime = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -347,6 +369,16 @@ const AppointmentsScreen = ({ navigation }) => {
     }
   };
 
+  const getPaymentMethodText = (method) => {
+    switch(method) {
+      case 'pix': return 'PIX';
+      case 'credit_card': return 'Cartão de Crédito';
+      case 'debit_card': return 'Cartão de Débito';
+      case 'cash': return 'Dinheiro';
+      default: return method;
+    }
+  };
+
   const renderAppointmentItem = ({ item }) => (
     <View style={styles.appointmentCard}>
       <View style={styles.timeContainer}>
@@ -367,6 +399,11 @@ const AppointmentsScreen = ({ navigation }) => {
             <Text style={styles.appointmentPrice}>R$ {item.services.price}</Text>
           )}
         </View>
+        {item.payment_method && (
+          <Text style={styles.appointmentPayment}>
+            💳 {getPaymentMethodText(item.payment_method)}
+          </Text>
+        )}
         {item.notes && (
           <Text style={styles.appointmentNotes}>📝 {item.notes}</Text>
         )}
@@ -410,7 +447,6 @@ const AppointmentsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -427,7 +463,6 @@ const AppointmentsScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity 
           style={[styles.tab, activeTab === 'past' && styles.activeTab]}
@@ -472,7 +507,6 @@ const AppointmentsScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Lista de Agendamentos */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
@@ -498,7 +532,6 @@ const AppointmentsScreen = ({ navigation }) => {
         />
       )}
 
-      {/* Modal para Adicionar/Editar Agendamento */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -506,104 +539,130 @@ const AppointmentsScreen = ({ navigation }) => {
         onRequestClose={closeModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {editingAppointment ? 'Editar Agendamento' : 'Novo Agendamento'}
-            </Text>
+          <ScrollView contentContainerStyle={styles.modalScrollContent}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                {editingAppointment ? 'Editar Agendamento' : 'Novo Agendamento'}
+              </Text>
 
-            <Text style={styles.label}>Cliente:</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={formData.client_id}
-                onValueChange={(itemValue) => setFormData({ ...formData, client_id: itemValue })}
-                style={styles.picker}
-              >
-                {clients.map((client) => (
-                  <Picker.Item key={client.id} label={client.name} value={client.id} />
-                ))}
-              </Picker>
-            </View>
+              <Text style={styles.label}>Cliente:</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={formData.client_id}
+                  onValueChange={(itemValue) => setFormData({ ...formData, client_id: itemValue })}
+                  style={styles.picker}
+                >
+                  {clients.map((client) => (
+                    <Picker.Item key={client.id} label={client.name} value={client.id} />
+                  ))}
+                </Picker>
+              </View>
 
-            <Text style={styles.label}>Serviço:</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={formData.service_id}
-                onValueChange={(itemValue) => setFormData({ ...formData, service_id: itemValue })}
-                style={styles.picker}
-              >
-                {services.map((service) => (
-                  <Picker.Item key={service.id} label={service.name} value={service.id} />
-                ))}
-              </Picker>
-            </View>
+              <Text style={styles.label}>Serviço:</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={formData.service_id}
+                  onValueChange={handleServiceChange}
+                  style={styles.picker}
+                >
+                  {services.map((service) => (
+                    <Picker.Item key={service.id} label={service.name} value={service.id} />
+                  ))}
+                </Picker>
+              </View>
 
-            <Text style={styles.label}>Data e Hora:</Text>
-            <View style={styles.dateTimeContainer}>
-              <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateTimeButton}>
-                <Text>{formData.appointment_time.toLocaleDateString('pt-BR')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.dateTimeButton}>
-                <Text>{formData.appointment_time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Text>
-              </TouchableOpacity>
-            </View>
+              <Text style={styles.label}>Data e Hora:</Text>
+              <View style={styles.dateTimeContainer}>
+                <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateTimeButton}>
+                  <Text>{formData.appointment_time.toLocaleDateString('pt-BR')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.dateTimeButton}>
+                  <Text>{formData.appointment_time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Text>
+                </TouchableOpacity>
+              </View>
 
-            {showDatePicker && (
-              <DateTimePicker
-                value={formData.appointment_time}
-                mode="date"
-                display="default"
-                onChange={onDateChange}
+              {showDatePicker && (
+                <DateTimePicker
+                  value={formData.appointment_time}
+                  mode="date"
+                  display="default"
+                  onChange={onDateChange}
+                />
+              )}
+              {showTimePicker && (
+                <DateTimePicker
+                  value={formData.appointment_time}
+                  mode="time"
+                  display="default"
+                  onChange={onTimeChange}
+                />
+              )}
+
+              <Text style={styles.label}>Status:</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={formData.status}
+                  onValueChange={(itemValue) => setFormData({ ...formData, status: itemValue })}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Agendado" value="scheduled" />
+                  <Picker.Item label="Concluído" value="completed" />
+                  <Picker.Item label="Cancelado" value="cancelled" />
+                </Picker>
+              </View>
+
+              <Text style={styles.label}>Método de Pagamento: *</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={formData.payment_method}
+                  onValueChange={(itemValue) => setFormData({ ...formData, payment_method: itemValue })}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="PIX" value="pix" />
+                  <Picker.Item label="Cartão de Crédito" value="credit_card" />
+                  <Picker.Item label="Cartão de Débito" value="debit_card" />
+                  <Picker.Item label="Dinheiro" value="cash" />
+                </Picker>
+              </View>
+
+              <Text style={styles.label}>Valor do Pagamento:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Valor (R$)"
+                value={formData.payment_value}
+                onChangeText={(text) => setFormData({ ...formData, payment_value: text })}
+                keyboardType="numeric"
               />
-            )}
-            {showTimePicker && (
-              <DateTimePicker
-                value={formData.appointment_time}
-                mode="time"
-                display="default"
-                onChange={onTimeChange}
+
+              <Text style={styles.label}>Observações:</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Observações"
+                value={formData.notes}
+                onChangeText={(text) => setFormData({ ...formData, notes: text })}
+                multiline={true}
+                numberOfLines={3}
               />
-            )}
 
-            <Text style={styles.label}>Status:</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={formData.status}
-                onValueChange={(itemValue) => setFormData({ ...formData, status: itemValue })}
-                style={styles.picker}
-              >
-                <Picker.Item label="Agendado" value="scheduled" />
-                <Picker.Item label="Concluído" value="completed" />
-                <Picker.Item label="Cancelado" value="cancelled" />
-              </Picker>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={styles.cancelButton}
+                  onPress={closeModal}
+                >
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.saveButton}
+                  onPress={saveAppointment}
+                >
+                  <Text style={styles.saveButtonText}>
+                    {editingAppointment ? 'Atualizar' : 'Salvar'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Observações"
-              value={formData.notes}
-              onChangeText={(text) => setFormData({ ...formData, notes: text })}
-              multiline={true}
-              numberOfLines={3}
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={styles.cancelButton}
-                onPress={closeModal}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.saveButton}
-                onPress={saveAppointment}
-              >
-                <Text style={styles.saveButtonText}>
-                  {editingAppointment ? 'Atualizar' : 'Salvar'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
     </View>
@@ -779,6 +838,11 @@ const styles = StyleSheet.create({
     color: '#28a745',
     fontWeight: 'bold',
   },
+  appointmentPayment: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 5,
+  },
   appointmentNotes: {
     fontSize: 12,
     color: '#666',
@@ -822,18 +886,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontStyle: 'italic',
   },
-  // Estilos do Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalScrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   modalContent: {
     backgroundColor: '#fff',
     padding: 20,
     borderRadius: 10,
-    width: '90%',
+    width: '100%',
     maxWidth: 400,
   },
   modalTitle: {

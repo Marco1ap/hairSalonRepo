@@ -153,7 +153,7 @@ const ClientsScreen = ({ navigation }) => {
               }
 
               Alert.alert('Sucesso', 'Cliente excluído com sucesso!');
-              getClients(); // Recarrega a lista
+              getClients();
             } catch (error) {
               console.log('Erro ao excluir cliente:', error);
               Alert.alert('Erro', 'Ocorreu um erro inesperado');
