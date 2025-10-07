@@ -12,11 +12,13 @@ import { supabase } from '../supabase';
 const HomeScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
   const [todayAppointments, setTodayAppointments] = useState([]);
+  const [dailyRevenue, setDailyRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getUser();
     getTodayAppointments();
+    getDailyRevenue();
   }, []);
 
   const getUser = async () => {
@@ -31,7 +33,7 @@ const HomeScreen = ({ navigation }) => {
   const getTodayAppointments = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      
+
       const { data, error } = await supabase
         .from('appointments')
         .select(`
@@ -52,6 +54,28 @@ const HomeScreen = ({ navigation }) => {
       console.log('Erro:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getDailyRevenue = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('services(price)')
+        .eq('status', 'completed')
+        .gte('appointment_time', today)
+        .lt('appointment_time', today + 'T23:59:59');
+
+      if (error) {
+        console.log('Erro ao buscar receita do dia:', error);
+        return;
+      }
+
+      const revenue = data.reduce((sum, a) => sum + (parseFloat(a.services?.price) || 0), 0);
+      setDailyRevenue(revenue);
+    } catch (error) {
+      console.log('Erro inesperado ao calcular receita:', error);
     }
   };
 
@@ -77,13 +101,56 @@ const HomeScreen = ({ navigation }) => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.welcomeText}>
-          Bem-vinda, {user?.email?.split('@')[0] || 'Usuária'}!
+          Bem-vinda, Monique!
         </Text>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>Sair</Text>
         </TouchableOpacity>
       </View>
 
+      {/* 1º Lugar: Receita Hoje */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Receita Hoje</Text>
+        <View style={styles.metricCard}>
+          <Text style={styles.metricValue}>R$ {dailyRevenue.toFixed(2)}</Text>
+          <Text style={styles.metricLabel}>Total de Receita do Dia</Text>
+        </View>
+      </View>
+
+      {/* 2º Lugar: Ações Rápidas */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Ações Rápidas</Text>
+        
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('Clients')}
+        >
+          <Text style={styles.actionButtonText}>Gerenciar Clientes</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('Services')}
+        >
+          <Text style={styles.actionButtonText}>Ver Serviços</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('Appointments')}
+        >
+          <Text style={styles.actionButtonText}>Gerenciar Agendamentos</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('Analytics')}
+        >
+          <Text style={styles.actionButtonText}>Ver Análises e Gráficos</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 3º Lugar: Agendamentos Hoje */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Agendamentos de Hoje</Text>
         {loading ? (
@@ -113,31 +180,6 @@ const HomeScreen = ({ navigation }) => {
             Nenhum agendamento para hoje
           </Text>
         )}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Ações Rápidas</Text>
-        
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('Clients')}
-        >
-          <Text style={styles.actionButtonText}>Gerenciar Clientes</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('Services')}
-        >
-          <Text style={styles.actionButtonText}>Ver Serviços</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')}
-        >
-          <Text style={styles.actionButtonText}>Novo Agendamento</Text>
-        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -237,6 +279,29 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     textAlign: 'center',
     fontWeight: 'bold',
+  },
+  metricCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginTop: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  metricValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#28a745',
+    marginBottom: 5,
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
   },
 });
 
